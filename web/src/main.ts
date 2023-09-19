@@ -4,27 +4,13 @@ import { memory } from 'tdd-game/tdd_game_bg.wasm' // will this work?
 import { Universe, Direction, Cell, GameState } from 'tdd-game'
 
 const gameWrapper = document.getElementById('game')!
+
 let universe = Universe.new()
-const width = universe.width()
-const height = universe.height()
+let width = universe.width()
+let height = universe.height()
 const controls = getControls()
 
-document.documentElement.style.setProperty('--universe-width', width.toString())
-document.documentElement.style.setProperty(
-  '--universe-height',
-  height.toString()
-)
-
-let moves = [Direction.Up, Direction.Right, Direction.Up, Direction.Left]
-
-moves.forEach((direction) => {
-  universe.queue_move(direction)
-})
-
-// requestAnimationFrame(renderLoop)
-drawCells()
-drawPlayer()
-drawStats()
+reset(universe)
 
 controls.onStart(() => {
   if (universe.state() === GameState.Playing) {
@@ -43,33 +29,20 @@ controls.onStop(() => {
   universe.pause()
 })
 
-controls.onReset(() => {
-  universe = Universe.new()
-  moves = [Direction.Up, Direction.Right, Direction.Up, Direction.Left]
-  moves.forEach((direction) => {
-    universe.queue_move(direction)
-  })
-
-  drawCells()
-  drawPlayer()
-  drawStats()
-})
+controls.onReset(() => reset())
 
 async function renderLoop() {
-  console.log(universe.state())
   switch (universe.tick()) {
     case GameState.Playing:
-      drawPlayer()
-      drawStats()
+      draw()
       break
     case GameState.Finished:
       if (universe.is_player_alive()) {
-        alert('You won!')
-
+        console.log('You won!')
         return
       }
 
-      alert('You lost!')
+      console.log('You lost!')
       return
     case GameState.Paused:
       break
@@ -77,7 +50,7 @@ async function renderLoop() {
       break
   }
 
-  await delay(500)
+  await delay(100)
   requestAnimationFrame(renderLoop)
 }
 
@@ -85,7 +58,36 @@ function getIndex(row: number, column: number) {
   return row * width + column
 }
 
-function drawCells() {
+function draw() {
+  drawPlayer()
+  drawStats()
+}
+
+function reset(existingUniverse = Universe.new()) {
+  universe = existingUniverse
+
+  document.documentElement.style.setProperty(
+    '--universe-width',
+    width.toString()
+  )
+  document.documentElement.style.setProperty(
+    '--universe-height',
+    height.toString()
+  )
+  ;[Direction.Up, Direction.Right, Direction.Up, Direction.Left].forEach(
+    (direction) => {
+      universe.queue_move(direction)
+    }
+  )
+
+  renderCells()
+  drawPlayer()
+  drawStats()
+
+  return [universe, width, height]
+}
+
+function renderCells() {
   gameWrapper.innerHTML = ''
 
   const fragment = document.createDocumentFragment()
