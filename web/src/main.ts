@@ -31,12 +31,11 @@ controls.onStart(() => {
     return
   }
 
-  universe.play()
-
-  console.log(universe.state())
-
   if (universe.state() === GameState.Initial) {
+    universe.play()
     requestAnimationFrame(renderLoop)
+  } else {
+    universe.play()
   }
 })
 
