@@ -153,6 +153,10 @@ impl Universe {
         self.player.y
     }
 
+    pub fn player_index(&self) -> u32 {
+        self.get_index(self.player.y, self.player.x) as u32
+    }
+
     pub fn is_player_alive(&self) -> bool {
         self.player.alive
     }

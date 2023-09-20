@@ -146,8 +146,6 @@ function drawPlayer() {
 
   let idx = getIndex(universe.player_y(), universe.player_x())
 
-  console.log()
-
   const cell = gameWrapper.children[idx]
 
   cell.appendChild(playerElement)
