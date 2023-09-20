@@ -2,8 +2,16 @@ import './style.css'
 
 import { memory } from 'tdd-game/tdd_game_bg.wasm' // will this work?
 import { Universe, Direction, Cell, GameState } from 'tdd-game'
+import Sortable from 'sortablejs'
+
+const DEBUG = false
+
+const DELAY = 500
 
 const gameWrapper = document.getElementById('game')!
+// let moves = [Direction.Up, Direction.Down, Direction.Left, Direction.Right]
+let moves: Direction[] = []
+let isRecording = false
 
 let universe = Universe.new()
 let width = universe.width()
@@ -17,7 +25,16 @@ controls.onStart(() => {
     return
   }
 
+  if (isRecording) {
+    toggleRecording()
+  }
+
   if (universe.state() === GameState.Initial) {
+    controls.movesContainer.disable()
+    moves.forEach((direction) => {
+      universe.queue_move(direction)
+    })
+
     universe.play()
     requestAnimationFrame(renderLoop)
   } else {
@@ -31,18 +48,25 @@ controls.onStop(() => {
 
 controls.onReset(() => reset())
 
+controls.onRecord(toggleRecording)
+
 async function renderLoop() {
   switch (universe.tick()) {
     case GameState.Playing:
       draw()
       break
     case GameState.Finished:
-      if (universe.is_player_alive()) {
+      controls.movesContainer.enable()
+
+      if (universe.is_player_alive() && universe.is_player_on_goal()) {
+        draw()
+
         console.log('You won!')
         return
       }
 
       console.log('You lost!')
+
       return
     case GameState.Paused:
       break
@@ -50,7 +74,7 @@ async function renderLoop() {
       break
   }
 
-  await delay(100)
+  await delay(DELAY)
   requestAnimationFrame(renderLoop)
 }
 
@@ -74,11 +98,8 @@ function reset(existingUniverse = Universe.new()) {
     '--universe-height',
     height.toString()
   )
-  ;[Direction.Up, Direction.Right, Direction.Up, Direction.Left].forEach(
-    (direction) => {
-      universe.queue_move(direction)
-    }
-  )
+
+  controls.movesContainer.reset()
 
   renderCells()
   drawPlayer()
@@ -88,6 +109,8 @@ function reset(existingUniverse = Universe.new()) {
 }
 
 function renderCells() {
+  const cellClassNames = ['cell floor', 'cell lava', 'cell goal']
+
   gameWrapper.innerHTML = ''
 
   const fragment = document.createDocumentFragment()
@@ -100,7 +123,7 @@ function renderCells() {
       const idx = getIndex(row, col)
 
       const cell = document.createElement('div')
-      cell.className = cells[idx] === Cell.Floor ? 'cell floor' : 'cell lava'
+      cell.className = cellClassNames[cells[idx]]
 
       fragment.appendChild(cell)
     }
@@ -119,7 +142,11 @@ function drawPlayer() {
   const playerElement = document.createElement('div')
   playerElement.className = 'player'
 
+  console.log(universe.player_y(), universe.player_x())
+
   let idx = getIndex(universe.player_y(), universe.player_x())
+
+  console.log()
 
   const cell = gameWrapper.children[idx]
 
@@ -127,6 +154,10 @@ function drawPlayer() {
 }
 
 function drawStats() {
+  if (!DEBUG) {
+    return
+  }
+
   const statsElement = document.getElementById('stats')!
 
   statsElement.innerHTML = ''
@@ -150,11 +181,59 @@ function getControls() {
   const start = document.getElementById('start')!
   const stop = document.getElementById('stop')!
   const reset = document.getElementById('reset')!
+  const record = document.getElementById('record')!
+
+  const movesElement = document.getElementById('moves')!
+
+  const sortable = Sortable.create(movesElement, {
+    animation: 150,
+    // Element dragging ended
+    onSort: function ({ item, oldIndex, newIndex }) {
+      const itemElement = item
+
+      const direction = parseInt(itemElement.dataset.direction!) as Direction
+
+      if (typeof oldIndex !== 'number' || typeof newIndex !== 'number') {
+        return
+      }
+
+      moves.splice(oldIndex, 1)
+      moves.splice(newIndex, 0, direction)
+    },
+  })
+
+  const movesContainer = {
+    reset() {
+      moves = []
+      movesElement.innerHTML = ''
+    },
+    addDirection(direction: Direction) {
+      moves.push(direction)
+      movesElement.appendChild(createMoveElement(direction))
+    },
+    disable() {
+      sortable.option('disabled', true)
+    },
+    enable() {
+      sortable.option('disabled', false)
+    },
+  }
+
+  function createMoveElement(direction: Direction) {
+    const move = document.createElement('div')
+    move.dataset.direction = direction.toString()
+    move.className = 'move'
+    move.innerHTML = renderDirection(direction)
+
+    return move
+  }
 
   return {
     start,
     stop,
     reset,
+    record,
+    movesContainer,
     onStart(callback = () => {}) {
       start.addEventListener('click', callback)
     },
@@ -164,9 +243,60 @@ function getControls() {
     onReset(callback = () => {}) {
       reset.addEventListener('click', callback)
     },
+    onRecord(callback = () => {}) {
+      record.addEventListener('click', callback)
+    },
   }
 }
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function renderDirection(direction: Direction) {
+  switch (direction) {
+    case Direction.Up:
+      return '↑'
+    case Direction.Down:
+      return '↓'
+    case Direction.Left:
+      return '←'
+    case Direction.Right:
+      return '→'
+    default:
+      return ''
+  }
+}
+
+function handleKeyRecord(event: KeyboardEvent) {
+  let direction: Direction | null = null
+
+  if (event.key === 'ArrowUp') {
+    direction = Direction.Up
+  } else if (event.key === 'ArrowDown') {
+    direction = Direction.Down
+  } else if (event.key === 'ArrowLeft') {
+    direction = Direction.Left
+  } else if (event.key === 'ArrowRight') {
+    direction = Direction.Right
+  } else {
+    return
+  }
+
+  controls.movesContainer.addDirection(direction)
+}
+
+function toggleRecording() {
+  isRecording = !isRecording
+
+  if (!isRecording) {
+    document.removeEventListener('keyup', handleKeyRecord)
+    controls.record.innerHTML = 'Record Moves'
+
+    return
+  }
+
+  controls.record.innerHTML = 'Stop Recording'
+
+  document.addEventListener('keyup', handleKeyRecord)
 }

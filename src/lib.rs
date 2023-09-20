@@ -2,10 +2,20 @@ mod utils;
 
 use std::{collections::VecDeque, fmt};
 
+use rand::prelude::*;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    // The `console.log` is quite polymorphic, so we can bind it with multiple
+    // signatures. Note that we need to use `js_name` to ensure we always call
+    // `log` in JS.
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
     fn alert(s: &str);
 }
 
@@ -67,6 +77,7 @@ impl Player {
 pub enum Cell {
     Floor = 0,
     Lava = 1,
+    Goal = 2,
 }
 
 #[wasm_bindgen]
@@ -82,12 +93,27 @@ pub struct Universe {
 #[wasm_bindgen]
 impl Universe {
     pub fn new() -> Universe {
-        let width = 9;
-        let height = 9;
+        let mut rng = rand::thread_rng();
 
-        let cells = (0..width * height).map(|_| Cell::Floor).collect();
+        let width = 5;
+        let height = 5;
 
-        let player = Player::new(width / 2, height - 1);
+        let middle = width / 2;
+        let player_pos = (height - 1) * width + middle;
+
+        let cells = (0..width * height)
+            .map(|idx| {
+                let rand: f64 = rng.gen();
+
+                match idx {
+                    num if num == middle => Cell::Goal,
+                    num if num != player_pos && num % 2 == 0 && rand < 0.2 => Cell::Lava,
+                    _ => Cell::Floor,
+                }
+            })
+            .collect();
+
+        let player = Player::new(middle, height - 1);
 
         Universe {
             width,
@@ -131,8 +157,12 @@ impl Universe {
         self.player.alive
     }
 
+    pub fn is_player_on_goal(&self) -> bool {
+        self.cells[self.get_index(self.player.y, self.player.x)] == Cell::Goal
+    }
+
     pub fn queue_move(&mut self, direction: Direction) {
-        self.moves.push_front(direction)
+        self.moves.push_back(direction)
     }
 
     pub fn play(&mut self) {
@@ -169,6 +199,20 @@ impl Universe {
 
         self.state = GameState::Playing;
 
+        // log("Moving in direction:");
+        // log_u32(direction as u32);
+        // if (self.player.x == 0 && direction == Direction::Left)
+        //     || (self.player.x == self.width - 1 && direction == Direction::Right)
+        //     || (self.player.y == 0 && direction == Direction::Up)
+        //     || (self.player.y == self.height - 1 && direction == Direction::Down)
+        // {
+        //     log("now we here");
+        //     log_u32(self.player_x());
+        //     log_u32(self.player_y());
+        //     return self.state;
+        // } else {
+        // }
+
         self.player.move_player(direction);
 
         let floor_idx = self.get_index(self.player.y, self.player.x);
@@ -177,6 +221,9 @@ impl Universe {
             Cell::Floor => (),
             Cell::Lava => {
                 self.player.alive = false;
+            }
+            Cell::Goal => {
+                self.state = GameState::Finished;
             }
         };
 
