@@ -17,8 +17,8 @@
     justify-content: center;
     align-items: center;
     padding: 4px;
-    width: var(--cell-size);
-    height: var(--cell-size);
+    width: 100%;
+    height: 100%;
   }
 
   .floor {
