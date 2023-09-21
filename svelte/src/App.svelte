@@ -6,53 +6,56 @@
   import GamePlayer from './lib/GamePlayer.svelte'
   import Controls from './lib/Controls.svelte'
 
-  const universe = Universe.new()
+  let universe = Universe.new()
   const width = universe.width()
   const height = universe.height()
 
-  const cellsPtr = universe.cells()
+  let cellsPtr = universe.cells()
   const cells = new Uint8Array(memory.buffer, cellsPtr, width * height)
 
-  let count: number = 0
-  const increment = () => {
-    count += 1
+  let moves = [Direction.Up, Direction.Right, Direction.Down, Direction.Left]
+  let isRecording = false
+  let playerIndex = universe.player_index()
+
+  function handleStart() {
+    moves.forEach((move) => {
+      console.log(move)
+      universe.tick(move)
+
+      playerIndex = universe.player_index()
+    })
   }
-
-  // requestAnimationFrame(renderLoop)
-
-  // function renderLoop() {
-  //   // universe.tick()
-  //   increment()
-  //   requestAnimationFrame(renderLoop)
-  // }
 </script>
 
-<main>
-  <div class="cells">
-    <!-- {#each cells as cell, index (`${index}-${cell}`)}
+{#key universe}
+  <main>
+    {isRecording}
+    <div class="cells">
+      {#each cells as cell, index (`${index}-${cell}`)}
         <GameCell type={cell}>
-          {#if index === universe.player_index()}
+          {#if index === playerIndex}
             <GamePlayer />
           {/if}
         </GameCell>
-      {/each} -->
-    {#each { length: 25 } as _, i}
-      <GameCell type={Math.random() < 0.2 ? 1 : 0}>
-        {#if i === universe.player_index()}
-          <GamePlayer />
-        {/if}
-      </GameCell>
-    {/each}
-  </div>
+      {/each}
+    </div>
 
-  <Controls
-    --margin-top="var(--size-4)"
-    onStart={() => {}}
-    onStop={() => {}}
-    onReset={() => {}}
-    onRecord={() => {}}
-  />
-</main>
+    <Controls
+      --margin-top="var(--size-4)"
+      bind:isRecording
+      onStart={handleStart}
+      onPause={() => {
+        universe.pause()
+      }}
+      onReset={() => {
+        console.log('reset')
+        universe = Universe.new()
+        cellsPtr = universe.cells()
+      }}
+      onRecord={() => {}}
+    />
+  </main>
+{/key}
 
 <style>
   main {

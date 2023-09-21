@@ -1,15 +1,23 @@
 <script lang="ts">
   export let onStart: () => void
-  export let onStop: () => void
+  export let onPause: () => void
   export let onReset: () => void
   export let onRecord: () => void
+
+  export let isRecording: boolean = false
 </script>
 
 <div class="controls {$$props.class || ''}">
-  <button class="start">Start</button>
-  <button class="stop">Stop</button>
-  <button class="reset">Reset</button>
-  <button class="record">Record Moves</button>
+  <button class="start" on:click={onStart}>Start</button>
+  <button class="stop" on:click={onPause}>Pause</button>
+  <button class="reset" on:click={onReset}>Reset</button>
+  <button
+    class="record"
+    on:click={() => {
+      isRecording = !isRecording
+      onRecord()
+    }}>{isRecording ? 'Stop Recording' : 'Record Moves'}</button
+  >
 </div>
 
 <style>
@@ -39,7 +47,7 @@
       background-color: oklch(38.24% 0.044 260.47);
     }
 
-    & .stop {
+    & .pause {
       background-color: oklch(50.67% 0 202.24);
     }
 

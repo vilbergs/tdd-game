@@ -181,7 +181,7 @@ impl Universe {
         self.moves.pop_front()
     }
 
-    pub fn tick(&mut self) -> GameState {
+    pub fn tick(&mut self, direction: Direction) -> GameState {
         if self.player.alive == false {
             self.state = GameState::Finished;
 
@@ -191,15 +191,6 @@ impl Universe {
         if self.state == GameState::Paused {
             return self.state;
         }
-
-        let direction = match self.next_move() {
-            Some(direction) => direction,
-            None => {
-                self.state = GameState::Finished;
-
-                return self.state;
-            }
-        };
 
         self.state = GameState::Playing;
 
