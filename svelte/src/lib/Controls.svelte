@@ -2,7 +2,7 @@
   export let onStart: () => void
   export let onPause: () => void
   export let onReset: () => void
-  export let onRecord: () => void
+  // export let onRecord: () => void
 
   export let isRecording: boolean = false
 </script>
@@ -15,9 +15,11 @@
     class="record"
     on:click={() => {
       isRecording = !isRecording
-      onRecord()
-    }}>{isRecording ? 'Stop Recording' : 'Record Moves'}</button
+      // onRecord()
+    }}
   >
+    {isRecording ? 'STOP' : 'RECORD'}
+  </button>
 </div>
 
 <style>
@@ -29,6 +31,7 @@
     & button {
       all: unset;
       cursor: pointer;
+      text-align: center;
       text-transform: uppercase;
       color: white;
       padding: var(--size-2) var(--size-4);
@@ -36,6 +39,7 @@
 
       -webkit-font-smoothing: antialiased;
       font-size: var(--size-4);
+      font-weight: 600;
       background-color: oklch(50.67% 0 202.24);
 
       &:not(:last-child) {
@@ -44,7 +48,7 @@
     }
 
     & .start {
-      background-color: oklch(38.24% 0.044 260.47);
+      background-color: var(--blue-400);
     }
 
     & .pause {
@@ -52,7 +56,21 @@
     }
 
     & .record {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
       background-color: oklch(64.41% 0.281 29.65);
+      width: var(--size-11);
+
+      & div {
+        padding-top: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--size-3);
+        height: var(--size-3);
+      }
     }
   }
 </style>

@@ -10,6 +10,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "openai": "^4.8.0",
     "sortablejs": "^1.15.0",
     "tdd-game": "file:../pkg"
   },
